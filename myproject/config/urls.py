@@ -5,8 +5,8 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('lms.urls')),  # Добавь, если планируешь API для LMS
-    path('api/users/', include('users.urls')), # Добавь, если планируешь API для Users
+    path('api/', include('lms.urls')),
+    path('api/users/', include('users.urls')),
 ]
 
 if settings.DEBUG:

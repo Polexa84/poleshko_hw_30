@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from .managers import UserManager  # Импортируем наш UserManager
 
 class User(AbstractUser):
     username = None  # Убираем username
@@ -10,6 +11,8 @@ class User(AbstractUser):
 
     USERNAME_FIELD = 'email'  # Указываем email как поле для аутентификации
     REQUIRED_FIELDS = []  # Список полей, которые нужно заполнить при создании суперпользователя
+
+    objects = UserManager()  # Используем наш UserManager
 
     def __str__(self):
         return self.email
