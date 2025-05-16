@@ -17,6 +17,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_filters',  # Добавляем django_filters
     'rest_framework',  # Добавляем DRF
     'users',  # Добавляем приложение users
     'lms',  # Добавляем приложение lms
