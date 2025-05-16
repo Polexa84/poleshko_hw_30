@@ -1,6 +1,6 @@
 from django.urls import path
-from . import views  # Импортируем views (пока не используем, но нужно)
+from .views import PaymentListAPIView
 
 urlpatterns = [
-    # Здесь будут URL-маршруты для приложения users
+    path('payments/', PaymentListAPIView.as_view(), name='payment-list'),
 ]
