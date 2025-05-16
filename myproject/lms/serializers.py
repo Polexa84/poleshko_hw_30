@@ -1,8 +1,14 @@
 from rest_framework import serializers
 from .models import Course, Lesson
 
+class LessonSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Lesson
+        fields = '__all__'  # Или можно указать конкретные поля: ['id', 'course', 'title', 'description', 'preview', 'video_link']
+
 class CourseSerializer(serializers.ModelSerializer):
     lessons_count = serializers.SerializerMethodField() # Добавляем поле
+    lessons = LessonSerializer(many=True, read_only=True)  # Добавляем поле для уроков
 
     class Meta:
         model = Course
@@ -19,8 +25,3 @@ class CourseSerializer(serializers.ModelSerializer):
             int: Количество уроков для данного курса.
         """
         return obj.lessons.count()
-
-class LessonSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Lesson
-        fields = '__all__'  # Или можно указать конкретные поля: ['id', 'course', 'title', 'description', 'preview', 'video_link']
