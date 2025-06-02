@@ -1,9 +1,11 @@
 from django.db import models
+from django.conf import settings  # Импортируем settings
 
 class Course(models.Model):
     title = models.CharField(max_length=255, verbose_name='Название')
     preview = models.ImageField(upload_to='courses/', blank=True, null=True, verbose_name='Превью')
     description = models.TextField(blank=True, null=True, verbose_name='Описание')
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name='Владелец', related_name='courses')  # Добавлено поле owner
 
     def __str__(self):
         return self.title
@@ -18,6 +20,7 @@ class Lesson(models.Model):
     description = models.TextField(blank=True, null=True, verbose_name='Описание')
     preview = models.ImageField(upload_to='lessons/', blank=True, null=True, verbose_name='Превью')
     video_link = models.URLField(blank=True, null=True, verbose_name='Ссылка на видео')
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name='Владелец', related_name='lessons')  # Добавлено поле owner
 
     def __str__(self):
         return self.title
