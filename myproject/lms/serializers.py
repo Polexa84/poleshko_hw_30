@@ -1,10 +1,14 @@
 from rest_framework import serializers
 from .models import Course, Lesson
+from .validators import validate_youtube_link  # Импортируем валидатор
 
 class LessonSerializer(serializers.ModelSerializer):
     class Meta:
         model = Lesson
-        fields = '__all__'  # Или можно указать конкретные поля: ['id', 'course', 'title', 'description', 'preview', 'video_link']
+        fields = '__all__'
+        extra_kwargs = {
+            'video_link': {'validators': [validate_youtube_link]}
+        }
 
 class CourseSerializer(serializers.ModelSerializer):
     lessons_count = serializers.SerializerMethodField() # Добавляем поле
