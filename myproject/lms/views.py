@@ -6,12 +6,14 @@ from .models import Course, Lesson, Subscription
 from .serializers import CourseSerializer, LessonSerializer
 from .permissions import IsModerator, IsOwner
 from rest_framework.permissions import IsAuthenticated
+from .paginators import CoursePaginator, LessonPaginator  # Импортируем пагинаторы
 
 
 class LessonListAPIView(generics.ListAPIView):
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
     permission_classes = [IsAuthenticated, (IsModerator | IsOwner)]  # Просмотр доступен всем аутентифицированным, модераторам и владельцам
+    pagination_class = LessonPaginator  # Добавляем пагинатор
 
 
 class LessonRetrieveAPIView(generics.RetrieveAPIView):
@@ -44,6 +46,7 @@ class LessonDestroyAPIView(generics.DestroyAPIView):
 class CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
+    pagination_class = CoursePaginator  # Добавляем пагинатор
 
     def get_permissions(self):
         """
