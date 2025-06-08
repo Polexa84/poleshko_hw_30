@@ -5,7 +5,6 @@ from django.db import models
 from lms.models import Course, Lesson
 
 class User(AbstractUser):
-    username = None  # Убираем username
     email = models.EmailField(unique=True, verbose_name='Email')
     phone = models.CharField(max_length=20, blank=True, null=True, verbose_name='Телефон')
     city = models.CharField(max_length=100, blank=True, null=True, verbose_name='Город')
