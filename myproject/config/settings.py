@@ -3,6 +3,9 @@ import os
 from dotenv import load_dotenv
 from datetime import timedelta
 
+load_dotenv()
+
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-5@&uvor8iho#t61#i2&6nyxd)on=rxc*&3b!fwt3=@rukghxz%'
@@ -39,6 +42,10 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'config.urls'
 
+STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY') # Получаем секретный ключ из переменной окружения
+if STRIPE_SECRET_KEY is None:
+    raise ValueError("STRIPE_SECRET_KEY не установлен в переменных окружения!")
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -55,8 +62,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
-
-load_dotenv()
 
 DATABASES = {
     'default': {

@@ -2,12 +2,13 @@ from rest_framework import viewsets, generics, permissions, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-from .models import Course, Lesson, Subscription
-from .serializers import CourseSerializer, LessonSerializer
+from .models import Course, Lesson, Subscription, Payment  # Добавлена модель Payment
+from .serializers import CourseSerializer, LessonSerializer, PaymentSerializer  # Добавлен PaymentSerializer
 from .permissions import IsModerator, IsOwner
 from rest_framework.permissions import IsAuthenticated
 from .paginators import CoursePaginator, LessonPaginator  # Импортируем пагинаторы
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes  # Импортируем декоратор и OpenApiParameter
+from .stripe_service import create_stripe_product, create_stripe_price, create_stripe_checkout_session, retrieve_stripe_checkout_session  # Импортируем сервисные функции Stripe
 
 
 @extend_schema(
@@ -160,3 +161,68 @@ class SubscriptionAPIView(APIView):
             message = 'подписка добавлена'
 
         return Response({"message": message}, status=status.HTTP_200_OK)
+
+
+class CreatePaymentView(APIView):
+    def post(self, request, course_id):
+        try:
+            course = Course.objects.get(pk=course_id)
+            amount = int(course.price * 100)  # Цена в центах
+            success_url = request.build_absolute_uri(f'/payment/success/{course_id}/')  # URL для успешной оплаты
+            cancel_url = request.build_absolute_uri(f'/payment/cancel/{course_id}/')  # URL для отмены оплаты
+
+            # 1. Создаем продукт в Stripe
+            stripe_product = create_stripe_product(name=course.title, description=course.description)
+
+            # 2. Создаем цену в Stripe
+            stripe_price = create_stripe_price(product_id=stripe_product.id, unit_amount=amount)
+
+            # 3. Создаем сессию оформления заказа в Stripe
+            stripe_session = create_stripe_checkout_session(
+                price_id=stripe_price.id,
+                success_url=success_url,
+                cancel_url=cancel_url
+            )
+
+            # 4. Сохраняем информацию об оплате в нашей базе данных
+            payment = Payment.objects.create(
+                user=request.user,
+                course=course,
+                amount=course.price,
+                stripe_product_id=stripe_product.id,
+                stripe_price_id=stripe_price.id,
+                stripe_session_id=stripe_session.id,
+                status='pending'
+            )
+
+            serializer = PaymentSerializer(payment)  # Сериализуем данные об оплате
+            return Response({'session_url': stripe_session.url, 'payment': serializer.data}, status=status.HTTP_200_OK)
+
+        except Course.DoesNotExist:
+            return Response({'error': 'Курс не найден'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class PaymentSuccessView(APIView):
+    def get(self, request, course_id):
+        try:
+            payment = Payment.objects.get(user=request.user, course_id=course_id, status='pending')
+            session = retrieve_stripe_checkout_session(payment.stripe_session_id)
+
+            if session.payment_status == 'paid':
+                payment.status = 'paid'
+                payment.save()
+                return Response({'message': 'Оплата успешно завершена'}, status=status.HTTP_200_OK)
+            else:
+                return Response({'message': 'Оплата не завершена'}, status=status.HTTP_400_BAD_REQUEST)
+
+        except Payment.DoesNotExist:
+            return Response({'error': 'Платеж не найден'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class PaymentCancelView(APIView):
+    def get(self, request, course_id):
+        return Response({'message': 'Оплата отменена'}, status=status.HTTP_200_OK)
