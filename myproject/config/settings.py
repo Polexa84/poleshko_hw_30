@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     'rest_framework',  # Добавляем DRF
     'users',  # Добавляем приложение users
     'lms',  # Добавляем приложение lms
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -69,6 +70,7 @@ DATABASES = {
 }
 
 REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',  # По умолчанию требуется аутентификация
     ],
@@ -119,3 +121,10 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 AUTH_USER_MODEL = 'users.User'
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Your Project API',
+    'DESCRIPTION': 'API documentation for your project',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False, # Отключает автоматическую подачу схемы, если нужно больше контроля
+}
