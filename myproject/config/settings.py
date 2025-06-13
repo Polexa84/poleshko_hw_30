@@ -3,6 +3,9 @@ import os
 from dotenv import load_dotenv
 from datetime import timedelta
 
+load_dotenv()
+
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-5@&uvor8iho#t61#i2&6nyxd)on=rxc*&3b!fwt3=@rukghxz%'
@@ -24,6 +27,7 @@ INSTALLED_APPS = [
     'rest_framework',  # Добавляем DRF
     'users',  # Добавляем приложение users
     'lms',  # Добавляем приложение lms
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -37,6 +41,10 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'config.urls'
+
+STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY') # Получаем секретный ключ из переменной окружения
+if STRIPE_SECRET_KEY is None:
+    raise ValueError("STRIPE_SECRET_KEY не установлен в переменных окружения!")
 
 TEMPLATES = [
     {
@@ -55,8 +63,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-load_dotenv()
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -69,6 +75,7 @@ DATABASES = {
 }
 
 REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',  # По умолчанию требуется аутентификация
     ],
@@ -119,3 +126,10 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 AUTH_USER_MODEL = 'users.User'
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Your Project API',
+    'DESCRIPTION': 'API documentation for your project',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False, # Отключает автоматическую подачу схемы, если нужно больше контроля
+}
