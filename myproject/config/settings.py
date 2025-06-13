@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'users',  # Добавляем приложение users
     'lms',  # Добавляем приложение lms
     'drf_spectacular',
+    'django_celery_beat',
 ]
 
 MIDDLEWARE = [
@@ -112,7 +113,7 @@ LANGUAGE_CODE = 'en-us'
 
 DEFAULT_CHARSET = 'utf-8'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/Moscow'
 
 USE_I18N = True
 
@@ -133,3 +134,18 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False, # Отключает автоматическую подачу схемы, если нужно больше контроля
 }
+
+# Настройки Redis (из переменных окружения)
+REDIS_HOST = os.environ.get('REDIS_HOST', 'localhost')  # Значение по умолчанию для локальной разработки
+REDIS_PORT = os.environ.get('REDIS_PORT', 6379)  # Значение по умолчанию
+REDIS_DB = os.environ.get('REDIS_DB', 0)  # Значение по умолчанию
+
+CELERY_BROKER_URL = f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}'  # URL брокера сообщений (Redis)
+CELERY_RESULT_BACKEND = f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}'  # URL для хранения результатов задач
+
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Europe/Moscow'
+
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler' # Используем celery-beat для периодических задач
