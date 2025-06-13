@@ -9,6 +9,7 @@ class Course(models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name='Владелец',
                               related_name='courses')  # Добавлено поле owner
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name='Цена')  # Цена курса
+    last_update = models.DateTimeField(blank=True, null=True, verbose_name='Последнее обновление')
 
     def __str__(self):
         return self.title

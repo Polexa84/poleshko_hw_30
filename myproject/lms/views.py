@@ -2,20 +2,18 @@ from rest_framework import viewsets, generics, permissions, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-from .models import Course, Lesson, Subscription, Payment  # Добавлена модель Payment
-from .serializers import CourseSerializer, LessonSerializer, PaymentSerializer  # Добавлен PaymentSerializer
+from .models import Course, Lesson, Subscription, Payment
+from .serializers import CourseSerializer, LessonSerializer, PaymentSerializer
 from .permissions import IsModerator, IsOwner
 from rest_framework.permissions import IsAuthenticated
-from .paginators import CoursePaginator, LessonPaginator  # Импортируем пагинаторы
-from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes  # Импортируем декоратор и OpenApiParameter
-from .stripe_service import create_stripe_product, create_stripe_price, create_stripe_checkout_session, retrieve_stripe_checkout_session  # Импортируем сервисные функции Stripe
+from .paginators import CoursePaginator, LessonPaginator
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
+from .stripe_service import create_stripe_product, create_stripe_price, create_stripe_checkout_session, retrieve_stripe_checkout_session
+from django.utils import timezone
+from datetime import timedelta
+from .tasks import send_course_update_email  # Импортируем задачу Celery
 
 
-@extend_schema(
-    summary='Получение списка уроков',
-    description='Этот эндпоинт возвращает список всех доступных уроков.',
-    responses={200: LessonSerializer(many=True)}
-)
 class LessonListAPIView(generics.ListAPIView):
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
@@ -23,23 +21,12 @@ class LessonListAPIView(generics.ListAPIView):
     pagination_class = LessonPaginator  # Добавляем пагинатор
 
 
-@extend_schema(
-    summary='Получение информации об уроке',
-    description='Этот эндпоинт возвращает детальную информацию об уроке по его ID.',
-    responses={200: LessonSerializer}
-)
 class LessonRetrieveAPIView(generics.RetrieveAPIView):
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
     permission_classes = [IsAuthenticated, (IsModerator | IsOwner)]  # Просмотр доступен всем аутентифицированным, модераторам и владельцам
 
 
-@extend_schema(
-    summary='Создание урока',
-    description='Этот эндпоинт позволяет создать новый урок.',
-    responses={201: LessonSerializer},
-    request=LessonSerializer
-)
 class LessonCreateAPIView(generics.CreateAPIView):
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
@@ -49,12 +36,6 @@ class LessonCreateAPIView(generics.CreateAPIView):
         serializer.save(owner=self.request.user)  # Автоматическая установка владельца
 
 
-@extend_schema(
-    summary='Обновление урока',
-    description='Этот эндпоинт позволяет обновить существующий урок.',
-    responses={200: LessonSerializer},
-    request=LessonSerializer
-)
 class LessonUpdateAPIView(generics.UpdateAPIView):
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
@@ -81,6 +62,7 @@ class CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
     pagination_class = CoursePaginator  # Добавляем пагинатор
+    permission_classes = [IsAuthenticated, (IsModerator | IsOwner)]
 
     def get_permissions(self):
         """
@@ -226,3 +208,30 @@ class PaymentSuccessView(APIView):
 class PaymentCancelView(APIView):
     def get(self, request, course_id):
         return Response({'message': 'Оплата отменена'}, status=status.HTTP_200_OK)
+
+
+class CourseUpdateAPIView(generics.UpdateAPIView):
+    queryset = Course.objects.all()
+    serializer_class = CourseSerializer
+    permission_classes = [IsAuthenticated, (IsModerator | IsOwner)]  # или какие у тебя там права доступа
+
+    def perform_update(self, serializer):
+        course = self.get_object()
+        last_update = course.last_update  # Получаем last_update
+
+        if last_update is None or (timezone.now() - last_update) > timedelta(hours=4):
+            serializer.save()
+            course.last_update = timezone.now()
+            course.save()
+
+            # Отправка уведомлений подписчикам
+            subscriptions = Subscription.objects.filter(course=course)
+            recipient_list = [subscription.user.email for subscription in subscriptions]
+
+            if recipient_list:
+                subject = f"Обновление курса: {course.title}"
+                message = f"Курс '{course.title}' был обновлен. Пожалуйста, проверьте новые материалы."
+                # Вызываем задачу Celery асинхронно
+                send_course_update_email.delay(course.id, subject, message, recipient_list)
+        else:
+            serializer.save()
