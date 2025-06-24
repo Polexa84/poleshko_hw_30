@@ -1,0 +1,78 @@
+version: '3.9'
+
+services:
+  # Django + Gunicorn
+  backend:
+    build: .
+    command: sh -c "python manage.py migrate && gunicorn lms.wsgi:application --bind 0.0.0.0:8000"
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: db  # Важно для Docker-сети
+      REDIS_HOST: redis  # Важно для Docker-сети
+
+  # PostgreSQL
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB_NAME}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  # Redis
+  redis:
+    image: redis:6
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  # Celery Worker
+  celery_worker:
+    build: .
+    command: celery -A lms worker --loglevel=info
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+      - redis
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: db
+      REDIS_HOST: redis
+
+  # Celery Beat
+  celery_beat:
+    build: .
+    command: celery -A lms beat --loglevel=info
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+      - redis
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: db
+      REDIS_HOST: redis
+
+volumes:
+  postgres_data:
+  redis_data:
