@@ -22,7 +22,7 @@ jobs:
       - name: Run Tests
         run: |
           source venv/bin/activate
-          python manage.py test
+          python myproject/manage.py test
 
   deploy:
     needs: test  # Этот job запустится только если job 'test' успешно завершится
