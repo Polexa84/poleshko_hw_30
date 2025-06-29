@@ -23,6 +23,8 @@ jobs:
         run: |
           source venv/bin/activate
           python myproject/manage.py test
+    env:  # Добавляем секцию env
+      STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}  # Передаем секрет
 
   deploy:
     needs: test  # Этот job запустится только если job 'test' успешно завершится
