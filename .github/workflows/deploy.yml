@@ -42,8 +42,8 @@ jobs:
               python3.11 -m venv venv #Устанавливаем зависимости
               source venv/bin/activate
               pip install -r requirements.txt
-              python manage.py migrate  # Выполняем миграции
-              python manage.py collectstatic --noinput # Собираем статику
+              python myproject/manage.py migrate  # ИЗМЕНИЛ ПУТЬ
+              python myproject/manage.py collectstatic --noinput # Собираем статику # ИЗМЕНИЛ ПУТЬ
               sudo systemctl restart gunicorn # Перезапускаем Gunicorn
               sudo systemctl restart nginx # Перезапускаем Nginx
             '
