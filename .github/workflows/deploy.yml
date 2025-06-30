@@ -7,13 +7,13 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest  # Используем Ubuntu для тестов
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3  # Клонируем репозиторий
+      - uses: actions/checkout@v3
       - name: Set up Python 3.12
         uses: actions/setup-python@v3
         with:
-          python-version: "3.12"  # Версия Python, которую используешь
+          python-version: "3.12"
       - name: Install Dependencies
         run: |
           python -m venv venv
@@ -23,29 +23,28 @@ jobs:
         run: |
           source venv/bin/activate
           python myproject/manage.py test
-    env:  # Добавляем секцию env
-      STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}  # Передаем секрет
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
 
   deploy:
-    needs: test  # Этот job запустится только если job 'test' успешно завершится
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: Deploy to Server
         uses: appleboy/ssh-action@v1.1.0
         with:
-          host: ${{ secrets.SSH_HOST }}  # IP адрес сервера
-          username: ${{ secrets.SSH_USER }} # Имя пользователя на сервере
-          key: ${{ secrets.SSH_PRIVATE_KEY }} # Приватный ключ SSH
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} '
-              cd /home/ubuntu/lms  # Путь к проекту на сервере (измени, если другой)
-              git pull origin main  # Обновляем код
-              python3.11 -m venv venv #Устанавливаем зависимости
-              source venv/bin/activate
-              pip install -r requirements.txt
-              python myproject/manage.py migrate  # ИЗМЕНИЛ ПУТЬ
-              python myproject/manage.py collectstatic --noinput # Собираем статику # ИЗМЕНИЛ ПУТЬ
-              sudo systemctl restart gunicorn # Перезапускаем Gunicorn
-              sudo systemctl restart nginx # Перезапускаем Nginx
-            '
+            set -e  # Exit immediately if a command exits with a non-zero status.
+            cd /home/deployer/poleshko_hw_30  # Correct path to the project on the server
+            git pull origin develop_1 # Обновляем код
+            python3.12 -m venv venv #Устанавливаем зависимости
+            source venv/bin/activate
+            pip install -r requirements.txt
+            python myproject/manage.py migrate
+            python myproject/manage.py collectstatic --noinput
+            sudo systemctl restart gunicorn
+            sudo systemctl restart nginx
