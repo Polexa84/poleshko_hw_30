@@ -24,7 +24,10 @@ jobs:
           source venv/bin/activate
           python myproject/manage.py test
         env:
-          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          POSTGRES_DB_NAME: ${{ secrets.POSTGRES_DB_NAME }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}  # Передаем секрет
 
   deploy:
     needs: test
@@ -38,10 +41,10 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            set -e  # Exit immediately if a command exits with a non-zero status.
-            cd /home/deployer/poleshko_hw_30  # Correct path to the project on the server
-            git pull origin develop_1 # Обновляем код
-            python3.12 -m venv venv #Устанавливаем зависимости
+            set -e
+            cd /home/deployer/poleshko_hw_30
+            git pull origin develop_1
+            python3.12 -m venv venv
             source venv/bin/activate
             pip install -r requirements.txt
             python myproject/manage.py migrate
