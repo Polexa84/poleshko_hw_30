@@ -1,56 +1,57 @@
-name: Deploy to Production
+name: Test Django App
 
 on:
   push:
     branches:
-      - develop_1
+      - main  # Или ваша основная ветка
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v3
-        with:
-          python-version: "3.12"
-      - name: Install Dependencies
-        run: |
-          python -m venv venv
-          source venv/bin/activate
-          pip install -r requirements.txt
-      - name: Set up PostgreSQL
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql postgresql-contrib
-          sudo sed -i "s/127.0.0.1/0.0.0.0/g" /etc/***ql/16/main/***ql.conf # Разрешить входящие соединения
-          sudo tee /etc/***ql/16/main/pg_hba.conf <<< "host all all 0.0.0.0/0 trust" # Доверенный доступ
-          sudo service postgresql restart
-          sudo -u postgres createuser -s $POSTGRES_USER
-          sudo -u postgres createdb $POSTGRES_DB_NAME
-        env:
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-          POSTGRES_DB_NAME: ${{ secrets.POSTGRES_DB_NAME }}
-          PGDATA: /var/lib/***ql/16/main
-      - name: Run Tests
-        run: |
-          source venv/bin/activate
-          python myproject/manage.py flush --noinput  # Очистка кэша
-          python myproject/manage.py test
-        env:
-          POSTGRES_DB_NAME: ${{ secrets.POSTGRES_DB_NAME }}
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
     services:
       postgres:
-        image: postgres:16
+        image: postgres:14  # Укажите нужную версию PostgreSQL
         ports:
           - "5432:5432"
         env:
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-          POSTGRES_DB: ${{ secrets.POSTGRES_DB_NAME }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_USER: postgres  # Значение по умолчанию, можно изменить
+          POSTGRES_PASSWORD: password  # Значение по умолчанию, можно изменить
+          POSTGRES_DB: testdb  # Значение по умолчанию, можно изменить
         options: >-
-          --health-cmd pg_isready --health-interval 10s --health-timeout 5s
-          --health-retries 3
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 3
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Cache pip
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Set up database
+      run: |
+        python manage.py migrate
+        python manage.py create_test_db  # Или другая команда для создания тестовой базы данных, если нужно
+
+    - name: Run tests
+      run: python manage.py test
+
+    env:
+      POSTGRES_DB_NAME: testdb  # Имя тестовой базы данных
+      POSTGRES_USER: postgres  # Имя пользователя PostgreSQL
+      POSTGRES_PASSWORD: password  # Пароль пользователя PostgreSQL
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}  # Не забудьте добавить секрет SECRET_KEY
