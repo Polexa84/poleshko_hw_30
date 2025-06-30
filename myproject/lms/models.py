@@ -17,6 +17,7 @@ class Course(models.Model):
     class Meta:
         verbose_name = 'Курс'
         verbose_name_plural = 'Курсы'
+        app_label = 'lms'
 
 
 class Lesson(models.Model):
