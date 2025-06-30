@@ -22,12 +22,13 @@ jobs:
       - name: Run Tests
         run: |
           source venv/bin/activate
+          python myproject/manage.py flush --noinput  # Очистка кэша
           python myproject/manage.py test
         env:
           POSTGRES_DB_NAME: ${{ secrets.POSTGRES_DB_NAME }}
           POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}  # Передаем секрет
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
 
   deploy:
     needs: test
