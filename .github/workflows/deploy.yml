@@ -23,12 +23,15 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y postgresql postgresql-contrib
-          sudo service postgresql start
+          sudo sed -i "s/127.0.0.1/0.0.0.0/g" /etc/***ql/16/main/***ql.conf # Разрешить входящие соединения
+          sudo tee /etc/***ql/16/main/pg_hba.conf <<< "host all all 0.0.0.0/0 trust" # Доверенный доступ
+          sudo service postgresql restart
           sudo -u postgres createuser -s $POSTGRES_USER
           sudo -u postgres createdb $POSTGRES_DB_NAME
         env:
           POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
           POSTGRES_DB_NAME: ${{ secrets.POSTGRES_DB_NAME }}
+          PGDATA: /var/lib/***ql/16/main
       - name: Run Tests
         run: |
           source venv/bin/activate
@@ -41,10 +44,13 @@ jobs:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
     services:
       postgres:
-        image: postgres:latest
+        image: postgres:16
         ports:
           - "5432:5432"
         env:
           POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
           POSTGRES_DB: ${{ secrets.POSTGRES_DB_NAME }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        options: >-
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s
+          --health-retries 3
