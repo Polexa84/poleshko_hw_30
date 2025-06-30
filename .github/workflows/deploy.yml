@@ -3,8 +3,7 @@ name: Test Django App
 on:
   push:
     branches:
-      - main  # Или ваша основная ветка
-
+      - develop_1
 jobs:
   test:
     runs-on: ubuntu-latest
