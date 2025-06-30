@@ -53,6 +53,7 @@ EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY') # Получаем секретный ключ из переменной окружения
+
 if STRIPE_SECRET_KEY is None:
     raise ValueError("STRIPE_SECRET_KEY не установлен в переменных окружения!")
 
