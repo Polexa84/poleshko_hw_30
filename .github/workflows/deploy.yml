@@ -42,11 +42,13 @@ jobs:
         pip install -r requirements.txt
 
     - name: Set up database
+      working-directory: ./myproject  # **Укажите путь к директории, где находится manage.py**
       run: |
         python manage.py migrate
         python manage.py create_test_db  # Или другая команда для создания тестовой базы данных, если нужно
 
     - name: Run tests
+      working-directory: ./myproject  # **Укажите путь к директории, где находится manage.py**
       run: python manage.py test
 
     env:
