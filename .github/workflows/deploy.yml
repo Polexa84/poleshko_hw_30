@@ -48,8 +48,10 @@ jobs:
         python manage.py create_test_db  # Или другая команда для создания тестовой базы данных, если нужно
 
     - name: Run tests
-      working-directory: ./myproject  # **Укажите путь к директории, где находится manage.py**
-      run: python manage.py test
+      working-directory: ./myproject
+      run: |
+        export STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
+        python manage.py test
 
     env:
       POSTGRES_DB_NAME: testdb  # Имя тестовой базы данных
