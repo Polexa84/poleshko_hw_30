@@ -17,7 +17,7 @@ jobs:
           POSTGRES_PASSWORD: password  # Значение по умолчанию, можно изменить
           POSTGRES_DB: testdb  # Значение по умолчанию, можно изменить
         options: >-
-          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 3
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 
 
     steps:
     - name: Check out code
@@ -66,4 +66,15 @@ jobs:
       POSTGRES_DB_NAME: testdb  # Имя тестовой базы данных
       POSTGRES_USER: postgres  # Имя пользователя PostgreSQL
       POSTGRES_PASSWORD: password  # Пароль пользователя PostgreSQL
-      SECRET_KEY: ${{ secrets.SECRET_KEY }}  # Не забудьте добавить секрет SECRET_KEY
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}  # Не забудьте добавить секрет SECRET_KEY в мой деплой
+  deploy:
+    needs: test  # Зависит от успешного завершения шага test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Deploy to Heroku
+        run: |
+          git remote add heroku https://heroku:$HEROKU_API_KEY@git.heroku.com/your-heroku-app-name.git
+          git push heroku develop_1:main -f
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
