@@ -21,7 +21,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'rest_framework_simplejwt',
+    #'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'django_filters',  # Добавляем django_filters
     'rest_framework',  # Добавляем DRF
