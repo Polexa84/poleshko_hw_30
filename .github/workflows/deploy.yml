@@ -43,11 +43,16 @@ jobs:
 
     - name: Debug Secret
       run: |
-        echo "SECRET_KEY: ${{ secrets.SECRET_KEY }}"
+        echo "SECRET_KEY (before export): ${{ secrets.SECRET_KEY }}"
+        export SECRET_KEY="${{ secrets.SECRET_KEY }}"
+        echo "SECRET_KEY (after export): $SECRET_KEY"
+    - name: Show environment variables
+      run: |
+        env | sort
     - name: Set up database
       working-directory: ./myproject
       run: |
-        eval "export SECRET_KEY='${{ secrets.SECRET_KEY }}'"
+        export SECRET_KEY="${{ secrets.SECRET_KEY }}"
         python manage.py migrate
         python manage.py create_test_db
 
