@@ -44,7 +44,7 @@ jobs:
     - name: Set up database
       working-directory: ./myproject
       run: |
-        export SECRET_KEY=$(echo '${{ secrets.SECRET_KEY }}' | base64 --decode)  # Декодируем SECRET_KEY
+        eval "export SECRET_KEY='${{ secrets.SECRET_KEY }}'"  # Используем eval
         python manage.py migrate
         python manage.py create_test_db
 
