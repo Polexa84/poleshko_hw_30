@@ -46,7 +46,7 @@ jobs:
       run: |
         export SECRET_KEY=${{ secrets.SECRET_KEY }}  # Передаем SECRET_KEY
         python manage.py migrate
-        python manage.py create_test_db  # Или другая команда для создания тестовой базы данных, если нужно
+        python manage.py create_test_db
 
     - name: Run tests
       working-directory: ./myproject
