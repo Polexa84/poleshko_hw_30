@@ -44,6 +44,7 @@ jobs:
     - name: Set up database
       working-directory: ./myproject  # **Укажите путь к директории, где находится manage.py**
       run: |
+        export SECRET_KEY=${{ secrets.SECRET_KEY }}  # Передаем SECRET_KEY
         python manage.py migrate
         python manage.py create_test_db  # Или другая команда для создания тестовой базы данных, если нужно
 
