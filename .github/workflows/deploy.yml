@@ -42,35 +42,20 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Debug Secret
-      run: |
-        echo "SECRET_KEY (before export): ${{ secrets.SECRET_KEY }}"
-        export SECRET_KEY="${{ secrets.SECRET_KEY }}"
-        echo "SECRET_KEY (after export): $SECRET_KEY"
-
-    - name: Show environment variables
-      run: |
-        env | sort
-
     - name: Set up database
       working-directory: ./myproject
       run: |
         python manage.py migrate
         python manage.py create_test_db
-      env:
-        SECRET_KEY: ${{ secrets.SECRET_KEY }}
 
     - name: Run tests
       working-directory: ./myproject
-      run: |
-        export STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
-        python manage.py test
+      run: python manage.py test
 
     env:
       POSTGRES_DB_NAME: testdb  # Имя тестовой базы данных
       POSTGRES_USER: postgres  # Имя пользователя PostgreSQL
       POSTGRES_PASSWORD: password  # Пароль пользователя PostgreSQL
-      SECRET_KEY: ${{ secrets.SECRET_KEY }}  # Не забудьте добавить секрет SECRET_KEY в мой деплой
 
   deploy:
     needs: test  # Зависит от успешного завершения шага test
@@ -79,7 +64,5 @@ jobs:
       - uses: actions/checkout@v3
       - name: Deploy to Heroku
         run: |
-          git remote add heroku https://heroku:$HEROKU_API_KEY@git.heroku.com/your-heroku-app-name.git
+          git remote add heroku git.heroku.com/your-heroku-app-name.git
           git push heroku develop_1:main -f
-        env:
-          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
