@@ -3,7 +3,7 @@ name: Django CI/CD Pipeline
 on:
   push:
     branches:
-      - develop_1
+      - develop_1 # Убедитесь, что это правильная ветка для деплоя
 
 jobs:
   test:
@@ -22,7 +22,7 @@ jobs:
 
     steps:
     - name: Check out code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4 # Обновлена до v4
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -61,63 +61,57 @@ jobs:
 
     steps:
     - name: Check out code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4 # Обновлена до v4
 
     - name: Set up SSH
-      uses: webfactory/ssh-agent@v0.9.0
+      # Использовать актуальную стабильную версию экшена
+      uses: webfactory/ssh-agent@v0.8.0
       with:
         ssh-private-key: ${{ secrets.SSH_KEY }}
+
+    # Шаг для добавления ключа хоста сервера в known_hosts
+    - name: Add server host key to known_hosts
+      run: |
+        mkdir -p ~/.ssh
+        ssh-keyscan ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+        # Установка правильных прав доступа для файла known_hosts
+        chmod 600 ~/.ssh/known_hosts
 
     - name: Copy project files to server
       run: |
         echo "Copying project files to server..."
+        # Используем секреты для подключения и пути
         rsync -avz --exclude '__pycache__' . ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:${{ secrets.DEPLOY_DIR }}
         echo "Files copied."
 
-    - name: Install dependencies on server
+    - name: Install dependencies, apply migrations, collect static files
+      # Объединил команды для удобства, чтобы избежать повторного подключения ssh
       run: |
-        echo "Installing dependencies on server..."
-        ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-          set -x  # Включаем отладку
+        echo "Executing commands on server..."
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+          set -e  # Выходить при первой ошибке
+          set -x  # Подробный вывод выполняемых команд
+          echo "Changing directory to deployment folder..."
           cd ${{ secrets.DEPLOY_DIR }}
-          python3 -m venv venv
+          echo "Activating virtual environment..."
           source venv/bin/activate
+          echo "Installing project dependencies..."
           pip install -r requirements.txt
-        EOF
-        echo "Dependencies installed."
-
-    - name: Apply migrations on server
-      run: |
-        echo "Applying migrations on server..."
-        ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-          set -x  # Включаем отладку
-          cd ${{ secrets.DEPLOY_DIR }}
-          source venv/bin/activate
+          echo "Applying database migrations..."
           python manage.py migrate
-        EOF
-        echo "Migrations applied."
-
-    - name: Collect static files on server
-      run: |
-        echo "Collecting static files on server..."
-        ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-          set -x  # Включаем отладку
-          cd ${{ secrets.DEPLOY_DIR }}
-          source venv/bin/activate
+          echo "Collecting static files..."
           python manage.py collectstatic --noinput
+          echo "Deployment commands executed successfully."
         EOF
-        echo "Static files collected."
+        echo "Commands executed on server."
 
     - name: Restart application
       run: |
         echo "Restarting application..."
-        ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-          set -x  # Включаем отладку
+        # Здесь нужен sudo, поэтому отдельный шаг.
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+          set -e # Выходить при первой ошибке
+          set -x  # Подробный вывод выполняемых команд
           sudo systemctl restart myapp.service
         EOF
         echo "Application restarted."
-
-    env:
-      SERVER_IP: ${{ secrets.SERVER_IP }}
-      SSH_USER: ${{ secrets.SSH_USER }}
-      DEPLOY_DIR: ${{ secrets.DEPLOY_DIR }}
