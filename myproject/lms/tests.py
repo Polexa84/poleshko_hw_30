@@ -49,3 +49,39 @@ class LessonTestCase(APITestCase):
         url = reverse('lesson-detail', args=[self.lesson.pk])
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+class SubscriptionTestCase(APITestCase):
+    """
+    Тесты для подписок на курсы.
+    """
+
+    def setUp(self):
+        """
+        Подготовка данных для тестов.
+        """
+        # Создаем пользователя
+        self.user = User.objects.create_user(email='test@example.com', password='testpassword', username='testuser')
+
+        # Создаем курс
+        self.course = Course.objects.create(title='Test Course', owner=self.user)
+
+        # Создаем клиент для выполнения запросов
+        self.client = APIClient()
+
+        # Аутентифицируем пользователя
+        self.client.force_authenticate(user=self.user)
+
+    def test_subscription_create_delete(self):
+        """
+        Тест: Создание и удаление подписки.
+        """
+        url = reverse('subscription-manage')
+        data = {'course_id': self.course.pk}
+
+        # Создаем подписку
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Удаляем подписку
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
