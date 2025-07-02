@@ -85,16 +85,20 @@ jobs:
         echo "Files copied."
 
     - name: Install dependencies, apply migrations, collect static files
-      # Объединил команды для удобства, чтобы избежать повторного подключения ssh
       run: |
         echo "Executing commands on server..."
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
           set -e  # Выходить при первой ошибке
           set -x  # Подробный вывод выполняемых команд
           echo "Changing directory to deployment folder..."
-          cd ${{ secrets.DEPLOY_DIR }}
-          echo "Activating virtual environment..."
-          source venv/bin/activate
+          # Указываем путь к директории с файлом manage.py
+          PROJECT_DIR="/home/deployer/poleshko_hw_30/myproject" 
+          cd "$PROJECT_DIR"
+          
+          echo "Activating virtual environment from project root..."
+          # Виртуальное окружение находится в корне проекта, а не внутри myproject
+          source /home/deployer/poleshko_hw_30/venv/bin/activate 
+          
           echo "Installing project dependencies..."
           pip install -r requirements.txt
           echo "Applying database migrations..."
