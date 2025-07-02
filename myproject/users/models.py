@@ -1,9 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from .managers import UserManager  # Импортируем наш UserManager
-from django.db import models
-from lms.models import Course, Lesson
-
 
 class User(AbstractUser):
     email = models.EmailField(unique=True, verbose_name='Email')
@@ -22,6 +19,7 @@ class User(AbstractUser):
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
+        app_label = 'users'
 
 
 class Payment(models.Model):
@@ -36,10 +34,10 @@ class Payment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Пользователь',
                              related_name='users_payments')  # Добавлен related_name
     payment_date = models.DateField(verbose_name='Дата оплаты')
-    paid_course = models.ForeignKey(Course, on_delete=models.SET_NULL, blank=True, null=True,
+    paid_course = models.ForeignKey('lms.Course', on_delete=models.SET_NULL, blank=True, null=True,
                                     verbose_name='Оплаченный курс',
                                     related_name='users_payments')  # Добавлен related_name
-    paid_lesson = models.ForeignKey(Lesson, on_delete=models.SET_NULL, blank=True, null=True,
+    paid_lesson = models.ForeignKey('lms.Lesson', on_delete=models.SET_NULL, blank=True, null=True,
                                     verbose_name='Оплаченный урок',
                                     related_name='users_payments')  # Добавлен related_name
     payment_amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Сумма оплаты')
@@ -51,3 +49,4 @@ class Payment(models.Model):
     class Meta:
         verbose_name = 'Платеж'
         verbose_name_plural = 'Платежи'
+        app_label = 'users'
