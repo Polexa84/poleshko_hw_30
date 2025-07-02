@@ -1,4 +1,4 @@
-name: Test Django App
+name: Django CI/CD Pipeline
 
 on:
   push:
@@ -56,11 +56,68 @@ jobs:
       POSTGRES_PASSWORD: password  # Пароль пользователя PostgreSQL
 
   deploy:
-    needs: test  # Зависит от успешного завершения шага test
+    needs: test
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
-      - name: Deploy to Heroku
-        run: |
-          git remote add heroku git.heroku.com/your-heroku-app-name.git
-          git push heroku develop_1:main -f
+    - name: Check out code
+      uses: actions/checkout@v3
+
+    - name: Set up SSH
+      uses: webfactory/ssh-agent@v0.8.1
+      with:
+        ssh-private-key: ${{ secrets.SSH_KEY }}
+
+    - name: Copy project files to server
+      run: |
+        echo "Copying project files to server..."
+        rsync -avz --exclude '__pycache__' . ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:${{ secrets.DEPLOY_DIR }}
+        echo "Files copied."
+
+    - name: Install dependencies on server
+      run: |
+        echo "Installing dependencies on server..."
+        ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+          set -x  # Включаем отладку
+          cd ${{ secrets.DEPLOY_DIR }}
+          python3 -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
+        EOF
+        echo "Dependencies installed."
+
+    - name: Apply migrations on server
+      run: |
+        echo "Applying migrations on server..."
+        ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+          set -x  # Включаем отладку
+          cd ${{ secrets.DEPLOY_DIR }}
+          source venv/bin/activate
+          python manage.py migrate
+        EOF
+        echo "Migrations applied."
+
+    - name: Collect static files on server
+      run: |
+        echo "Collecting static files on server..."
+        ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+          set -x  # Включаем отладку
+          cd ${{ secrets.DEPLOY_DIR }}
+          source venv/bin/activate
+          python manage.py collectstatic --noinput
+        EOF
+        echo "Static files collected."
+
+    - name: Restart application
+      run: |
+        echo "Restarting application..."
+        ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+          set -x  # Включаем отладку
+          sudo systemctl restart myapp.service
+        EOF
+        echo "Application restarted."
+
+    env:
+      SERVER_IP: ${{ secrets.SERVER_IP }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      DEPLOY_DIR: ${{ secrets.DEPLOY_DIR }}
