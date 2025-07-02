@@ -44,9 +44,7 @@ jobs:
 
     - name: Set up database
       working-directory: ./myproject
-      run: |
-        python manage.py migrate
-        python manage.py create_test_db
+      run: python manage.py migrate
 
     - name: Run tests
       working-directory: ./myproject
