@@ -116,6 +116,7 @@ jobs:
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
           set -e # Выходить при первой ошибке
           set -x  # Подробный вывод выполняемых команд
-          sudo systemctl restart myapp.service
+          sudo systemctl restart gunicorn.service
+          sudo systemctl reload nginx # Перезагрузка Nginx (если это необходимо)
         EOF
         echo "Application restarted."
