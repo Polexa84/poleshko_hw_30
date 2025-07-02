@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - develop_1
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -17,7 +18,7 @@ jobs:
           POSTGRES_PASSWORD: password  # Значение по умолчанию, можно изменить
           POSTGRES_DB: testdb  # Значение по умолчанию, можно изменить
         options: >-
-          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 3
 
     steps:
     - name: Check out code
@@ -46,9 +47,11 @@ jobs:
         echo "SECRET_KEY (before export): ${{ secrets.SECRET_KEY }}"
         export SECRET_KEY="${{ secrets.SECRET_KEY }}"
         echo "SECRET_KEY (after export): $SECRET_KEY"
+
     - name: Show environment variables
       run: |
         env | sort
+
     - name: Set up database
       working-directory: ./myproject
       run: |
@@ -67,6 +70,7 @@ jobs:
       POSTGRES_USER: postgres  # Имя пользователя PostgreSQL
       POSTGRES_PASSWORD: password  # Пароль пользователя PostgreSQL
       SECRET_KEY: ${{ secrets.SECRET_KEY }}  # Не забудьте добавить секрет SECRET_KEY в мой деплой
+
   deploy:
     needs: test  # Зависит от успешного завершения шага test
     runs-on: ubuntu-latest
