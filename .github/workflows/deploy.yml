@@ -55,9 +55,10 @@ jobs:
     - name: Set up database
       working-directory: ./myproject
       run: |
-        export SECRET_KEY="${{ secrets.SECRET_KEY }}"
         python manage.py migrate
         python manage.py create_test_db
+      env:
+        SECRET_KEY: ${{ secrets.SECRET_KEY }}
 
     - name: Run tests
       working-directory: ./myproject
