@@ -7,6 +7,8 @@ load_dotenv()
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 SECRET_KEY = 'django-insecure-5@&uvor8iho#t61#i2&6nyxd)on=rxc*&3b!fwt3=@rukghxz%'
 
@@ -52,7 +54,7 @@ EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
-STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY') # Получаем секретный ключ из переменной окружения
+STRIPE_SECRET_KEY = 'sk_test_51RZ7Gg073SGkf44XaMlYkLScARuGWEi3kNv8ocpb9IFKczkLgDbEGa8PXJsh0CIoxNY6I74uTtU9gpa2AkqXw0m000CSRvWCiM'
 if STRIPE_SECRET_KEY is None:
     raise ValueError("STRIPE_SECRET_KEY не установлен в переменных окружения!")
 
@@ -70,6 +72,7 @@ TEMPLATES = [
         },
     },
 ]
+
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
@@ -117,6 +120,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 LANGUAGE_CODE = 'en-us'
 

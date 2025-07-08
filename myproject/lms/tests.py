@@ -3,10 +3,9 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase, APIClient
 
-from .models import Course, Lesson, Subscription
+from lms.models import Course, Lesson, Subscription
 
 User = get_user_model()
-
 
 class LessonTestCase(APITestCase):
     """
@@ -50,8 +49,6 @@ class LessonTestCase(APITestCase):
         url = reverse('lesson-detail', args=[self.lesson.pk])
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-
 
 class SubscriptionTestCase(APITestCase):
     """
