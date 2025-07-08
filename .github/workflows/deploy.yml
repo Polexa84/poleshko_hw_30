@@ -3,26 +3,28 @@ name: Django CI/CD Pipeline
 on:
   push:
     branches:
-      - develop_1 # Убедитесь, что это правильная ветка для деплоя
+      - develop_1
 
 jobs:
   test:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:14  # Укажите нужную версию PostgreSQL
-        ports:
-          - "5432:5432"
+        image: postgres:14
+        ports: ["5432:5432"]
         env:
-          POSTGRES_USER: postgres  # Значение по умолчанию, можно изменить
-          POSTGRES_PASSWORD: password  # Значение по умолчанию, можно изменить
-          POSTGRES_DB: testdb  # Значение по умолчанию, можно изменить
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: testdb
         options: >-
-          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 3
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 3
 
     steps:
     - name: Check out code
-      uses: actions/checkout@v4 # Обновлена до v4
+      uses: actions/checkout@v4
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -33,7 +35,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        key: ${{ runner.os }}-pip-${{ hashFiles('myproject/requirements.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-
 
@@ -42,18 +44,20 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r myproject/requirements.txt
 
-    - name: Set up database
+    - name: Set up environment
+      run: |
+        echo "PYTHONPATH=$GITHUB_WORKSPACE/myproject" >> $GITHUB_ENV
+        echo "DJANGO_SETTINGS_MODULE=myproject.settings" >> $GITHUB_ENV
+
+    - name: Run migrations
       working-directory: ./myproject
       run: python manage.py migrate
+      env:
+        DATABASE_URL: postgres://postgres:password@localhost:5432/testdb
 
     - name: Run tests
       working-directory: ./myproject
       run: python manage.py test
-
-    env:
-      POSTGRES_DB_NAME: testdb  # Имя тестовой базы данных
-      POSTGRES_USER: postgres  # Имя пользователя PostgreSQL
-      POSTGRES_PASSWORD: password  # Пароль пользователя PostgreSQL
 
   deploy:
     needs: test
