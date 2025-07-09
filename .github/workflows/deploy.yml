@@ -11,7 +11,7 @@ env:
   REDIS_DB: 0
   DATABASE_URL: postgres://postgres:password@localhost:5432/testdb
   PYTHONPATH: ${{ github.workspace }}
-  DJANGO_SETTINGS_MODULE: myproject.settings
+  DJANGO_SETTINGS_MODULE: myproject.config.settings
 
 jobs:
   test:
