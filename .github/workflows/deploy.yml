@@ -3,122 +3,120 @@ name: Django CI/CD Pipeline
 on:
   push:
     branches:
-      - develop_1  # Убедись, что это правильная ветка для деплоя
+      - develop_1 # Убедитесь, что это правильная ветка для деплоя
 
 jobs:
   test:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:14
-        ports: ["5432:5432"]
+        image: postgres:14  # Укажите нужную версию PostgreSQL
+        ports:
+          - "5432:5432"
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: testdb
+          POSTGRES_USER: postgres  # Значение по умолчанию, можно изменить
+          POSTGRES_PASSWORD: password  # Значение по умолчанию, можно изменить
+          POSTGRES_DB: testdb  # Значение по умолчанию, можно изменить
         options: >-
-          --health-cmd pg_isready  # Проверка готовности PostgreSQL
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 3
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 3
 
     steps:
-      - name: Check out code
-        uses: actions/checkout@v4
+    - name: Check out code
+      uses: actions/checkout@v4 # Обновлена до v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
 
-      - name: Cache pip
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
+    - name: Cache pip
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r myproject/requirements.txt
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
 
-      - name: Run migrations  # Исправлено: Укажем рабочую директорию
-        working-directory: ./myproject  # Указываем рабочую директорию
-        run: |
-          python manage.py makemigrations
-          python manage.py migrate
+    - name: Set up database
+      working-directory: ./myproject
+      run: python manage.py migrate
 
-      - name: Run tests
-        working-directory: ./myproject
-        run: python manage.py test
+    - name: Run tests
+      working-directory: ./myproject
+      run: python manage.py test
 
     env:
-      POSTGRES_DB_NAME: testdb
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      # PYTHON_VERSION: "3.10"  # Добавлено для унификации. Необязательно, так как указано выше.
+      POSTGRES_DB_NAME: testdb  # Имя тестовой базы данных
+      POSTGRES_USER: postgres  # Имя пользователя PostgreSQL
+      POSTGRES_PASSWORD: password  # Пароль пользователя PostgreSQL
 
   deploy:
     needs: test
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out code
-        uses: actions/checkout@v4
+    - name: Check out code
+      uses: actions/checkout@v4 # Обновлена до v4
 
-      - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.8.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_KEY }}
+    - name: Set up SSH
+      # Использовать актуальную стабильную версию экшена
+      uses: webfactory/ssh-agent@v0.8.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_KEY }}
 
-      - name: Add server host key to known_hosts
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
-          chmod 600 ~/.ssh/known_hosts
+    # Шаг для добавления ключа хоста сервера в known_hosts
+    - name: Add server host key to known_hosts
+      run: |
+        mkdir -p ~/.ssh
+        ssh-keyscan ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+        # Установка правильных прав доступа для файла known_hosts
+        chmod 600 ~/.ssh/known_hosts
 
-      - name: Sync project files
-        run: |
-          rsync -avz \
-            --exclude '__pycache__' \
-            --exclude '.git' \
-            --exclude '*.pyc' \
-            . ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:${{ secrets.DEPLOY_DIR }}
+    - name: Copy project files to server
+      run: |
+        echo "Copying project files to server..."
+        # Используем секреты для подключения и пути
+        rsync -avz --exclude '__pycache__' . ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:${{ secrets.DEPLOY_DIR }}
+        echo "Files copied."
 
-      - name: Setup application services
-        run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-            set -ex  # Более строгий режим (останавливает выполнение при ошибках)
-            PROJECT_DIR="${{ secrets.DEPLOY_DIR }}/myproject"
-            VENV_PATH="/home/deployer/poleshko_hw_30/venv"
+    - name: Install dependencies, apply migrations, collect static files
+      run: |
+        echo "Executing commands on server..."
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+          set -e  # Выходить при первой ошибке
+          set -x  # Подробный вывод выполняемых команд
+          echo "Changing directory to deployment folder..."
+          # Указываем путь к директории с файлом manage.py
+          PROJECT_DIR="/home/deployer/poleshko_hw_30/myproject" 
+          cd "$PROJECT_DIR"
+          
+          echo "Activating virtual environment from project root..."
+          # Виртуальное окружение находится в корне проекта, а не внутри myproject
+          source /home/deployer/poleshko_hw_30/venv/bin/activate 
+          
+          echo "Installing project dependencies..."
+          pip install -r requirements.txt
+          echo "Applying database migrations..."
+          python manage.py migrate
+          echo "Collecting static files..."
+          python manage.py collectstatic --noinput
+          echo "Deployment commands executed successfully."
+        EOF
+        echo "Commands executed on server."
 
-            echo "Installing dependencies..."
-            source "$VENV_PATH/bin/activate"
-            pip install -r "$PROJECT_DIR/requirements.txt"
-
-            echo "Applying migrations..."
-            python "$PROJECT_DIR/manage.py" migrate  #  Убрали makemigrations, так как делаем только migrate
-
-            echo "Collecting static files..."
-            python "$PROJECT_DIR/manage.py" collectstatic --noinput
-
-            echo "Configuring services..."
-            sudo cp "$PROJECT_DIR/config/gunicorn.service" /etc/systemd/system/
-            sudo cp "$PROJECT_DIR/config/celery.service" /etc/systemd/system/
-            sudo cp "$PROJECT_DIR/config/celery-beat.service" /etc/systemd/system/
-
-            sudo systemctl daemon-reload
-            sudo systemctl enable gunicorn celery celery-beat
-          EOF
-
-      - name: Restart services
-        run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-            set -ex
-            sudo systemctl restart gunicorn
-            sudo systemctl restart celery
-            sudo systemctl restart celery-beat
-            sudo systemctl reload nginx
-          EOF
+    - name: Restart application
+      run: |
+        echo "Restarting application..."
+        # Здесь нужен sudo, поэтому отдельный шаг.
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+          set -e # Выходить при первой ошибке
+          set -x  # Подробный вывод выполняемых команд
+          sudo systemctl restart gunicorn.service
+          sudo systemctl reload nginx # Перезагрузка Nginx (если это необходимо)
+        EOF
+        echo "Application restarted."
