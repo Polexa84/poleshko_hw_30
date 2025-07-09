@@ -23,8 +23,7 @@ jobs:
           --health-retries 3
 
     steps:
-    - name: Check out code
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -36,8 +35,7 @@ jobs:
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('myproject/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
+        restore-keys: ${{ runner.os }}-pip-
 
     - name: Install dependencies
       run: |
@@ -46,8 +44,16 @@ jobs:
 
     - name: Set up environment
       run: |
-        echo "PYTHONPATH=$GITHUB_WORKSPACE/myproject" >> $GITHUB_ENV
+        echo "PYTHONPATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
         echo "DJANGO_SETTINGS_MODULE=myproject.settings" >> $GITHUB_ENV
+
+    - name: Debug project structure
+      run: |
+        echo "Current directory: $(pwd)"
+        ls -la
+        ls -la myproject
+        echo "PYTHONPATH: $PYTHONPATH"
+        echo "DJANGO_SETTINGS_MODULE: $DJANGO_SETTINGS_MODULE"
 
     - name: Run migrations
       working-directory: ./myproject
@@ -62,7 +68,6 @@ jobs:
   deploy:
     needs: test
     runs-on: ubuntu-latest
-
     steps:
     - name: Check out code
       uses: actions/checkout@v4 # Обновлена до v4
