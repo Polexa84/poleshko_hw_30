@@ -27,7 +27,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'django_filters',  # Добавляем django_filters
     'rest_framework',  # Добавляем DRF
-    'myproject.users.apps.UsersConfig',  # Добавляем приложение users
+    'users',  # Добавляем приложение users
     'lms',  # Добавляем приложение lms
     'drf_spectacular',
     'django_celery_beat',
